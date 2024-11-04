@@ -44,7 +44,7 @@ public class ParcoursUnitTest
         CreateParcoursUseCase useCase=new CreateParcoursUseCase(mockFactory.Object.ParcoursRepository());
         
         // Appel du use case
-        var parcoursTeste=await useCase.ExecuteAsync(parcoursAvant);
+        var parcoursTeste = await useCase.ExecuteAsync(parcoursAvant);
         
         // Vérification du résultat
         Assert.That(parcoursTeste.Id, Is.EqualTo(parcoursFinal.Id));
