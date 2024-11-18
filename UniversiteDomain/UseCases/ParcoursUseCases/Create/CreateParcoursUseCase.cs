@@ -15,7 +15,7 @@ public class CreateParcoursUseCase(IParcoursRepository parcoursRepository)
     {
         await CheckBusinessRules(parcours);
         Parcours pa = await parcoursRepository.CreateAsync(parcours);
-        parcoursRepository.SaveChangesAsync().Wait();   
+        parcoursRepository.SaveChangesAsync().Wait();  
         return pa;
     }
     private async Task CheckBusinessRules(Parcours parcours)
@@ -29,7 +29,7 @@ public class CreateParcoursUseCase(IParcoursRepository parcoursRepository)
         List<Parcours> existe = await parcoursRepository.FindByConditionAsync(e=>e.NomParcours.Equals(parcours.NomParcours));
 
         // Si un parcours avec le même nom existe déjà, on lève une exception personnalisée
-        if (existe.Any())
+        if (existe?.Any() == true)
             throw new DuplicateNomParcoursException(parcours.NomParcours + " - ce nom de parcours est déjà affecté à un parcours");
     }
 }
