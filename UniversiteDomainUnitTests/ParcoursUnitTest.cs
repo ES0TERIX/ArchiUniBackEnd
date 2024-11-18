@@ -2,8 +2,10 @@ using Moq;
 using UniversiteDomain.DataAdapters;
 using UniversiteDomain.DataAdapters.DataAdaptersFactory;
 using UniversiteDomain.Entities;
+using UniversiteDomain.Exceptions.ParcoursExceptions;
 using UniversiteDomain.UseCases.ParcoursUseCases.Create;
 using UniversiteDomain.UseCases.ParcoursUseCases.EtudiantDansParcours;
+using UniversiteDomain.UseCases.ParcoursUseCases.UeDansParcours;
 
 namespace UniversiteDomainUnitTests;
 
@@ -99,5 +101,42 @@ public class ParcoursUnitTest
         Assert.That(parcoursTest.Inscrits, Is.Not.Null);
         Assert.That(parcoursTest.Inscrits.Count, Is.EqualTo(1));
         Assert.That(parcoursTest.Inscrits[0].Id, Is.EqualTo(idEtudiant));
+    }
+
+    [Test]
+    public async Task AddUeDansParcoursUseCase(){
+        long idUe = 1;
+        long idParcours = 3;
+        Ue ue = new Ue { Id = idUe, Intitule = "UE1" };
+        Parcours parcours = new Parcours { Id = idParcours, NomParcours = "Parcours 1", AnneeFormation = 1 };
+        
+        var mockUe = new Mock<IUeRepository>();
+        var mockParcours = new Mock<IParcoursRepository>();
+        
+        List<Ue> ues = new List<Ue>();
+        ues.Add(ue);
+        
+        mockUe
+            .Setup(repo=>repo.FindByConditionAsync(e=>e.Id.Equals(idUe)))
+            .ReturnsAsync(ues);
+        
+        List<Parcours> parcourses = new List<Parcours>();
+        parcourses.Add(parcours);
+        
+        mockParcours
+            .Setup(repo=>repo.FindByConditionAsync(e=>e.Id.Equals(idParcours)))
+            .ReturnsAsync(parcourses);
+
+        mockParcours
+            .Setup(repo => repo.AddUeAsync(idParcours, idUe))
+            .ReturnsAsync(parcours);
+        
+        var mockFactory = new Mock<IRepositoryFactory>();
+        mockFactory.Setup(facto=>facto.UeRepository()).Returns(mockUe.Object);
+        mockFactory.Setup(facto=>facto.ParcoursRepository()).Returns(mockParcours.Object);
+        
+        AddUeDansParcoursUseCase useCase=new AddUeDansParcoursUseCase(mockFactory.Object);
+
+        Assert.ThrowsAsync<DuplicateUeDansParcoursException>(async () => await useCase.ExecuteAsync(idParcours, idUe));
     }
 }
