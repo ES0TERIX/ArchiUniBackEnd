@@ -1,4 +1,4 @@
-namespace UniversiteDomain.Entities;
+﻿namespace UniversiteDomain.Entities;
 
 public class Etudiant
 {
@@ -9,9 +9,10 @@ public class Etudiant
     public string Email { get; set; } = string.Empty;
 
     // ManyToOne : l'étudiant est inscrit dans un parcours
-    public Parcours? ParcoursSuivi { get; set; } = null;
-    
-    public List<Note>? NoteObtenues { get; set; } = null;
+    public virtual Parcours? ParcoursSuivi { get; set; } = null;
+    // OneToMany : l'étudiant a plusieurs notes
+    public virtual List<Note> NotesObtenues { get; set; } = new();
+
     public override string ToString()
     {
         return $"ID {Id} : {NumEtud} - {Nom} {Prenom} inscrit en "+ParcoursSuivi;

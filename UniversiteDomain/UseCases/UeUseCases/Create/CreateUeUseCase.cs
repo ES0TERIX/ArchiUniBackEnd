@@ -1,44 +1,45 @@
-using UniversiteDomain.DataAdapters;
+﻿using UniversiteDomain.DataAdapters.DataAdaptersFactory;
 using UniversiteDomain.Entities;
-using UniversiteDomain.Exceptions.UeExceptions;
+using UniversiteDomain.Exceptions.UeException;
 
 namespace UniversiteDomain.UseCases.UeUseCases.Create;
 
-public class CreateUeUseCase(IUeRepository ueRepository)
+public class CreateUeUseCase(IRepositoryFactory repositoryFactory)
 {
-    public async Task<Ue> ExecuteAsync(string numeroUe, string intitule)
-    {
-        var ue = new Ue{NumeroUe = numeroUe, Intitule = intitule};
-        return await ExecuteAsync(ue);
-    }
     
     public async Task<Ue> ExecuteAsync(Ue ue)
     {
         await CheckBusinessRules(ue);
-        Ue ueCreated = await ueRepository.CreateAsync(ue);
-        ueRepository.SaveChangesAsync().Wait();
-        return ueCreated;
+        await repositoryFactory.UeRepository().CreateAsync(ue);
+        await repositoryFactory.SaveChangesAsync();
+        return ue;
     }
 
+    public async Task<Ue> ExecuteAsync(string numero, string intitule)
+    {
+        Ue ue = new Ue
+        {
+            Intitule = intitule, 
+            NumeroUe = numero
+        };
+        return await ExecuteAsync(ue);
+    }
+    
     private async Task CheckBusinessRules(Ue ue)
     {
         ArgumentNullException.ThrowIfNull(ue);
-        ArgumentNullException.ThrowIfNull(ue.NumeroUe);
         ArgumentNullException.ThrowIfNull(ue.Intitule);
-        ArgumentNullException.ThrowIfNull(ueRepository);
+        ArgumentNullException.ThrowIfNull(ue.NumeroUe);
+        ArgumentNullException.ThrowIfNull(repositoryFactory);
         
-        // On recherche un ue avec le même nom de ue
-        List<Ue> ueWithDuplicatedNames  = await ueRepository.FindByConditionAsync(e=>e.NumeroUe.Equals(ue.NumeroUe));
-
-        // Si un parcours avec le même nom existe déjà, on lève une exception personnalisée
-        if (ueWithDuplicatedNames.Any())
-            throw new DuplicateNumUeException(ue.NumeroUe + " - ce nom de ue est déjà affecté à un ue");
-        
-        List<Ue> ueSmalerThanThree = await ueRepository.FindByConditionAsync(e => e.Intitule.Length >= 3);
-        
-        if (ueWithDuplicatedNames.Any())
-            throw new IntituleInfThreeException(ue.Intitule + " - cet intitule de ue est plus petit que 3");
-        
+        // L'UE doit être unique
+        List<Ue> ues = await repositoryFactory.UeRepository().FindByConditionAsync(u => u.NumeroUe.Equals(ue.NumeroUe));
+        if (ues is { Count: > 0 }) throw new DuplicateUeException(ue.NumeroUe+" - existe déjà");
+    }
+    
+    public bool IsAuthorized(string role)
+    {
+        return role.Equals(Roles.Scolarite) || role.Equals(Roles.Responsable);
     }
     
 }

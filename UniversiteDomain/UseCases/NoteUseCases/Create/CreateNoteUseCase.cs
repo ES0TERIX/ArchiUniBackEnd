@@ -1,41 +1,69 @@
-using UniversiteDomain.DataAdapters;
+﻿using UniversiteDomain.DataAdapters.DataAdaptersFactory;
 using UniversiteDomain.Entities;
+using UniversiteDomain.Exceptions.EtudiantExceptions;
 using UniversiteDomain.Exceptions.NoteExceptions;
+using UniversiteDomain.Exceptions.ParcoursExceptions;
 
 namespace UniversiteDomain.UseCases.NoteUseCases.Create;
 
-public class CreateNoteUseCase(INoteRepository noteRepository)
+public class CreateNoteUseCase(IRepositoryFactory repositoryFactory)
 {
-    public async Task<Note> ExecuteAsync(long etudiantId, long ueId, float valeur)
+    
+    public async Task<Note> ExecuteAsync(float valeurNote, long idEtudiant, long idUe)
     {
-        var note = new Note{Valeur = valeur, EtudiantId = etudiantId, UeId = ueId};
+        Etudiant? etudiant = await repositoryFactory.EtudiantRepository().FindAsync(idEtudiant);
+        if(etudiant==null) throw new EtudiantNotFoundException("L'étudiant n'existe pas");
+        
+        Ue? ue = await repositoryFactory.UeRepository().FindAsync(idUe);
+        if(ue==null) throw new UeNotFoundException("L'Ue n'existe pas");
+        
+        repositoryFactory.EtudiantRepository().Attach(etudiant);
+        repositoryFactory.UeRepository().Attach(ue);
+        
+        var note = new Note
+        {
+            Valeur = valeurNote, 
+            Etudiant= etudiant, 
+            Ue = ue
+        };
+
         return await ExecuteAsync(note);
-        
-        
     }
+    
     public async Task<Note> ExecuteAsync(Note note)
     {
         await CheckBusinessRules(note);
-        Note noteCreated = await noteRepository.CreateAsync(note);
-        noteRepository.SaveChangesAsync().Wait();
-        return noteCreated;
+        Note n = await repositoryFactory.NoteRepository().CreateAsync(note);
+        repositoryFactory.NoteRepository().SaveChangesAsync().Wait();
+        return n;
     }
 
     private async Task CheckBusinessRules(Note note)
     {
         ArgumentNullException.ThrowIfNull(note);
-        ArgumentNullException.ThrowIfNull(note.EtudiantId);
-        ArgumentNullException.ThrowIfNull(note.UeId);
         ArgumentNullException.ThrowIfNull(note.Valeur);
+        ArgumentNullException.ThrowIfNull(note.Etudiant);
+        ArgumentNullException.ThrowIfNull(note.Ue);
+        ArgumentNullException.ThrowIfNull(repositoryFactory.NoteRepository());
+
+        // L'étudiant ne doit pas aoir déjà une note pour cette Ue
+        List<Note> notes = await repositoryFactory.NoteRepository()
+            .FindByConditionAsync(n => n.Etudiant.Id.Equals(note.Etudiant.Id) && n.Ue.Id.Equals(note.Ue.Id));
+        if (notes is { Count: > 0 }) throw new DuplicateNoteException("L'étudiant a déjà une note pour cette Ue");
+
+        // La note doit être comprise entre 0 et 20
+        if (note.Valeur < 0 || note.Valeur > 20)
+            throw new NoteValueException("La note doit être comprise entre 0 et 20");
         
-        List<Note> noteDuplicated = await noteRepository.FindByConditionAsync(e=>(e.EtudiantId == note.EtudiantId && e.UeId == note.UeId));
-        
-        if (noteDuplicated.Any())
-            throw new DuplicateNoteException(note.EtudiantId - note.UeId + "est déjà attribuée : " + note.Valeur);
-        
-        List<Note> noteMauvaiseRange = await noteRepository.FindByConditionAsync(e => e.Valeur > 20 || e.Valeur < 0);
-        
-        if (noteMauvaiseRange.Any())
-            throw new WrongRangeNoteException(note.EtudiantId - note.UeId + "a une mauvaise range : " + note.Valeur);
+        // L'Ue doit être dans le parcours de l'étudiant
+        List<Ue> ues = await repositoryFactory.UeRepository().FindByConditionAsync(u => u.Id.Equals(note.Ue.Id));
+        if (ues is { Count: 0 }) throw new UeNotFoundException("L'étudiant n'a pas cette Ue dans son parcours");
+
     }
+    
+    public bool IsAuthorized(string role)
+    {
+        return role.Equals(Roles.Scolarite) || role.Equals(Roles.Responsable);
+    }
+
 }

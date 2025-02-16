@@ -1,35 +1,40 @@
-using UniversiteDomain.DataAdapters;
+﻿using UniversiteDomain.DataAdapters.DataAdaptersFactory;
 using UniversiteDomain.Entities;
-using UniversiteDomain.Exceptions.ParcoursExceptions;
 
 namespace UniversiteDomain.UseCases.ParcoursUseCases.Create;
 
-public class CreateParcoursUseCase(IParcoursRepository parcoursRepository)
+public class CreateParcoursUseCase(IRepositoryFactory repositoryFactory)
 {
     public async Task<Parcours> ExecuteAsync(string nomParcours, int anneeFormation)
     {
         var parcours = new Parcours{NomParcours = nomParcours, AnneeFormation = anneeFormation};
         return await ExecuteAsync(parcours);
     }
+
     public async Task<Parcours> ExecuteAsync(Parcours parcours)
     {
         await CheckBusinessRules(parcours);
-        Parcours pa = await parcoursRepository.CreateAsync(parcours);
-        parcoursRepository.SaveChangesAsync().Wait();  
+        Parcours pa = await repositoryFactory.ParcoursRepository().CreateAsync(parcours);
+        repositoryFactory.ParcoursRepository().SaveChangesAsync().Wait();
         return pa;
     }
+
     private async Task CheckBusinessRules(Parcours parcours)
     {
         ArgumentNullException.ThrowIfNull(parcours);
         ArgumentNullException.ThrowIfNull(parcours.NomParcours);
         ArgumentNullException.ThrowIfNull(parcours.AnneeFormation);
-        ArgumentNullException.ThrowIfNull(parcoursRepository);
+        ArgumentNullException.ThrowIfNull(repositoryFactory.ParcoursRepository());
         
-        // On recherche un parcours avec le même nom de parcours
-        List<Parcours> existe = await parcoursRepository.FindByConditionAsync(e=>e.NomParcours.Equals(parcours.NomParcours));
-
-        // Si un parcours avec le même nom existe déjà, on lève une exception personnalisée
-        if (existe?.Any() == true)
-            throw new DuplicateNomParcoursException(parcours.NomParcours + " - ce nom de parcours est déjà affecté à un parcours");
+        //AnnéeFormation supérieure à 0 et est 1 seul caractère, ne se repeat pas
+        if (parcours.AnneeFormation <= 0 || parcours.AnneeFormation > 9)
+        {
+            throw new ArgumentOutOfRangeException(nameof(parcours.AnneeFormation), "L'année de formation doit être comprise entre 1 et 9");
+        }
+    }
+    
+    public bool IsAuthorized(string role)
+    {
+        return role.Equals(Roles.Scolarite) || role.Equals(Roles.Responsable);
     }
 }

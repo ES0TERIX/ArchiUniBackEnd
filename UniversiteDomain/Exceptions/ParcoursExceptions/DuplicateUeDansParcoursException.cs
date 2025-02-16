@@ -1,10 +1,8 @@
-namespace UniversiteDomain.Exceptions.ParcoursExceptions;
+﻿namespace UniversiteDomain.Exceptions.ParcoursExceptions;
 
-[Serializable]
 public class DuplicateUeDansParcoursException : Exception
 {
     public DuplicateUeDansParcoursException() : base() { }
     public DuplicateUeDansParcoursException(string message) : base(message) { }
-
-    public DuplicateUeDansParcoursException(string message, Exception inner) : base(message, inner) { }
+    public DuplicateUeDansParcoursException(string message, Exception innerException) : base(message, innerException) { }
 }

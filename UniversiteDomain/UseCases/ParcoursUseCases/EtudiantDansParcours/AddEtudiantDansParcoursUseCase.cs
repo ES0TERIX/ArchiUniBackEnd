@@ -1,9 +1,8 @@
-
+﻿using UniversiteDomain.DataAdapters;
 using UniversiteDomain.DataAdapters.DataAdaptersFactory;
 using UniversiteDomain.Entities;
 using UniversiteDomain.Exceptions.EtudiantExceptions;
 using UniversiteDomain.Exceptions.ParcoursExceptions;
-
 
 namespace UniversiteDomain.UseCases.ParcoursUseCases.EtudiantDansParcours;
 
@@ -57,6 +56,11 @@ public class AddEtudiantDansParcoursUseCase(IRepositoryFactory repositoryFactory
         
         // On vérifie que l'étudiant n'est pas déjà dans le parcours
         List<Etudiant> inscrit = await repositoryFactory.EtudiantRepository().FindByConditionAsync(e=>e.Id.Equals(idEtudiant) && e.ParcoursSuivi.Id.Equals(idParcours));
-        if (inscrit is { Count: > 0 }) throw new DuplicateInscripionException(idEtudiant+" est déjà inscrit dans le parcours dans le parcours : "+idParcours);     
+        if (inscrit is { Count: > 0 }) throw new DuplicateInscriptionException(idEtudiant+" est déjà inscrit dans le parcours dans le parcours : "+idParcours);     
+    }
+    
+    public bool IsAuthorized(string role)
+    {
+        return role.Equals(Roles.Scolarite) || role.Equals(Roles.Responsable);
     }
 }
