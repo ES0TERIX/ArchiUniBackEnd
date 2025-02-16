@@ -8,6 +8,10 @@ namespace UniversiteDomain.UseCases.EtudiantUseCases.Create;
 
 public class CreateEtudiantUseCase(IRepositoryFactory repositoryFactory)
 {
+    public bool IsAuthorized(string role)
+    {
+        return role.Equals(Roles.Scolarite) || role.Equals(Roles.Responsable);
+    }
     public async Task<Etudiant> ExecuteAsync(string numEtud, string nom, string prenom, string email)
     {
         var etudiant = new Etudiant{NumEtud = numEtud, Nom = nom, Prenom = prenom, Email = email};
@@ -41,11 +45,8 @@ public class CreateEtudiantUseCase(IRepositoryFactory repositoryFactory)
         // Une autre façon de tester la vacuité de la liste
         if (existe is {Count:>0}) throw new DuplicateEmailException(etudiant.Email +" est déjà affecté à un étudiant");
         // Le métier définit que les nom doite contenir plus de 3 lettres
-        if (etudiant.Nom.Length < 3) throw new InvalidNomEtudiantException(etudiant.Nom +" incorrect - Le nom d'un étudiant doit contenir plus de 3 caractères");
+        if (etudiant.Nom.Length < 3) throw new NomEtudiantIncorrectException(etudiant.Nom +" incorrect - Le nom d'un étudiant doit contenir plus de 3 caractères");
     }
     
-    public bool IsAuthorized(string role)
-    {
-        return role.Equals(Roles.Scolarite) || role.Equals(Roles.Responsable);
-    }
+
 }

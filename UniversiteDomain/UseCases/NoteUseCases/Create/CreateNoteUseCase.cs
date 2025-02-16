@@ -8,7 +8,13 @@ namespace UniversiteDomain.UseCases.NoteUseCases.Create;
 
 public class CreateNoteUseCase(IRepositoryFactory repositoryFactory)
 {
-    
+    public async Task<Note> ExecuteAsync(Note note)
+    {
+        await CheckBusinessRules(note);
+        Note n = await repositoryFactory.NoteRepository().CreateAsync(note);
+        repositoryFactory.NoteRepository().SaveChangesAsync().Wait();
+        return n;
+    }
     public async Task<Note> ExecuteAsync(float valeurNote, long idEtudiant, long idUe)
     {
         Etudiant? etudiant = await repositoryFactory.EtudiantRepository().FindAsync(idEtudiant);
@@ -30,12 +36,9 @@ public class CreateNoteUseCase(IRepositoryFactory repositoryFactory)
         return await ExecuteAsync(note);
     }
     
-    public async Task<Note> ExecuteAsync(Note note)
+    public bool IsAuthorized(string role)
     {
-        await CheckBusinessRules(note);
-        Note n = await repositoryFactory.NoteRepository().CreateAsync(note);
-        repositoryFactory.NoteRepository().SaveChangesAsync().Wait();
-        return n;
+        return role.Equals(Roles.Scolarite) || role.Equals(Roles.Responsable);
     }
 
     private async Task CheckBusinessRules(Note note)
@@ -61,9 +64,6 @@ public class CreateNoteUseCase(IRepositoryFactory repositoryFactory)
 
     }
     
-    public bool IsAuthorized(string role)
-    {
-        return role.Equals(Roles.Scolarite) || role.Equals(Roles.Responsable);
-    }
+
 
 }

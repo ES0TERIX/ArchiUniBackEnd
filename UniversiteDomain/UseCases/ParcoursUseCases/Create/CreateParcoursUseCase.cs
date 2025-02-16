@@ -5,6 +5,20 @@ namespace UniversiteDomain.UseCases.ParcoursUseCases.Create;
 
 public class CreateParcoursUseCase(IRepositoryFactory repositoryFactory)
 {
+    
+    private async Task CheckBusinessRules(Parcours parcours)
+    {
+        ArgumentNullException.ThrowIfNull(parcours);
+        ArgumentNullException.ThrowIfNull(parcours.NomParcours);
+        ArgumentNullException.ThrowIfNull(parcours.AnneeFormation);
+        ArgumentNullException.ThrowIfNull(repositoryFactory.ParcoursRepository());
+        
+        //AnnéeFormation supérieure à 0 et est 1 seul caractère, ne se repeat pas
+        if (parcours.AnneeFormation <= 0 || parcours.AnneeFormation > 9)
+        {
+            throw new ArgumentOutOfRangeException(nameof(parcours.AnneeFormation), "L'année de formation doit être comprise entre 1 et 9");
+        }
+    }
     public async Task<Parcours> ExecuteAsync(string nomParcours, int anneeFormation)
     {
         var parcours = new Parcours{NomParcours = nomParcours, AnneeFormation = anneeFormation};
@@ -19,19 +33,7 @@ public class CreateParcoursUseCase(IRepositoryFactory repositoryFactory)
         return pa;
     }
 
-    private async Task CheckBusinessRules(Parcours parcours)
-    {
-        ArgumentNullException.ThrowIfNull(parcours);
-        ArgumentNullException.ThrowIfNull(parcours.NomParcours);
-        ArgumentNullException.ThrowIfNull(parcours.AnneeFormation);
-        ArgumentNullException.ThrowIfNull(repositoryFactory.ParcoursRepository());
-        
-        //AnnéeFormation supérieure à 0 et est 1 seul caractère, ne se repeat pas
-        if (parcours.AnneeFormation <= 0 || parcours.AnneeFormation > 9)
-        {
-            throw new ArgumentOutOfRangeException(nameof(parcours.AnneeFormation), "L'année de formation doit être comprise entre 1 et 9");
-        }
-    }
+
     
     public bool IsAuthorized(string role)
     {
